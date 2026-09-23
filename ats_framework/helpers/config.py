@@ -13,9 +13,10 @@ RETRY_BASE_DELAY = 0.5  # seconds (exponential backoff)
 # SharePoint settings
 # ----------------------
 SHAREPOINT_SITE_URL = "https://aarhuskommune.sharepoint.com"
-SHAREPOINT_SITE_NAME = "Sundhed-Samarbejdsprojekter"
+SHAREPOINT_SITE_NAME = "MBURPA"
+# SHAREPOINT_SITE_NAME = "Sundhed-Samarbejdsprojekter"
 SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
-SHAREPOINT_FOLDER_NAME = "General"
+SHAREPOINT_FOLDER_NAME = "Misc"
 
 EXCEL_FILE_NAME = "test.xlsx"
 EXCEL_SHEET_NAME = "Besvarelser"
