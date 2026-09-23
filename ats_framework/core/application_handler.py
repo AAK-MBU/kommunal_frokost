@@ -1,10 +1,15 @@
 """Module for handling application startup, and close"""
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any
 
+from dotenv import load_dotenv
+from mbu_msoffice_integration.sharepoint_class import Sharepoint
 from mbu_rpa_core.exceptions import ProcessError
+
+from ats_framework.helpers import config
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +35,25 @@ def startup():
     """Function for starting applications"""
     logger.info("Starting applications...")
 
-    # Assign the started application so get_app() can reach it from anywhere:
-    # CONTEXT.app = SolteqTandApp(path=..., username=..., password=...)
-    # CONTEXT.app.start_application()
-    # CONTEXT.app.login()
+    load_dotenv()
+
+    sharepoint = Sharepoint(
+        tenant=os.getenv("TENANT"),
+        client_id=os.getenv("CLIENT_ID"),
+        thumbprint=os.getenv("APPREG_THUMBPRINT"),
+        cert_path=os.getenv("GRAPH_CERT_PEM"),
+        site_url=config.SHAREPOINT_SITE_URL,
+        site_name=config.SHAREPOINT_SITE_NAME,
+        document_library=config.SHAREPOINT_DOCUMENT_LIBRARY,
+    )
+
+    # Sharepoint swallows authentication errors and leaves ctx as None
+    if sharepoint.ctx is None:
+        raise ProcessError(
+            f"Could not authenticate to SharePoint site {config.SHAREPOINT_SITE_NAME}"
+        )
+
+    CONTEXT.app = sharepoint
 
 
 def soft_close():
