@@ -229,19 +229,19 @@ def retrieve_items_for_queue() -> list[dict]:
             [form_sid],
             [form_type],
             [form_source],
-            [form_submitted_date],
+            CONVERT(nvarchar(33), [form_submitted_date], 127) AS [form_submitted_date],
             [destination_system],
             [status],
             [response],
-            [documented_date],
+            CONVERT(nvarchar(33), [documented_date], 127) AS [documented_date],
             [form_data],
-            [last_time_modified]
+            CONVERT(nvarchar(33), [last_time_modified], 127) AS [last_time_modified]
         FROM
-            [RPA].[journalizing].[view_Journalizing]
+            [RPA].[journalizing].[view_Journalizing] AS vj
         WHERE
             form_type = 'kommunal_frokost'
         ORDER BY
-            form_submitted_date desc
+            vj.[form_submitted_date] DESC
     """
 
     rpa_conn = RPAConnection(db_env="PROD", commit=False)
