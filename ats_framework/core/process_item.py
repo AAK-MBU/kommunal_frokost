@@ -123,16 +123,23 @@ def build_rows(submission: dict) -> list[dict]:
             }
         )
 
+    # Madpakke is decided for the whole dagtilbud, so the form has no afdelinger.
+    # List every afdeling from masterdata with the decision instead of marking
+    # them as missing from the submission.
+    is_madpakke = submission.get("frokost_eller_madpakke") == "madpakke"
+    bemaerkning = "" if is_madpakke else "Ikke med i besvarelsen"
+
     for md in submission.get("ikke_besvarede_afdelinger", []):
         rows.append(
             {
                 **common,
                 **unit_columns(md, ""),
-                "Bemærkning": "Ikke med i besvarelsen",
+                "Bemærkning": bemaerkning,
             }
         )
 
-    # A madpakke answer has no afdelinger - still register the dagtilbud's decision
+    # No afdelinger at all (e.g. madpakke without child units) - still
+    # register the dagtilbud's decision
     if not rows:
         rows.append({**common, **unit_columns(dagtilbud_md, "")})
 
