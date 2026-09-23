@@ -1,0 +1,528 @@
+page_1:
+  '#type': wizard_page
+  '#title': 'Side 1'
+  section_intro:
+    '#type': section
+    '#title': Intro
+    '#title_display': invisible
+    '#attributes':
+      style: 'background: #7f7f7f; padding: 25px;'
+    markup_introduktion:
+      '#type': markup
+      '#wrapper_attributes':
+        style: 'color: white;'
+      '#markup': |
+        <p>
+          Vælg dagtilbud nedenfor
+        </p>
+  section_vaelg_dagtilbud:
+    '#type': section
+    '#title': 'Vælg dagtilbud'
+    '#attributes':
+      style: 'background: #E5EFFA; padding: 25px;'
+    vaelg_dagtilbud:
+      '#type': remote_select_element
+      '#title': Dagtilbud
+      '#title_display': invisible
+      '#states_clear': false
+      '#endpoint': 'https://mbu-os2forms.adm.aarhuskommune.dk/os2forms/api/kommunal_frokost/get_dagtilbud'
+      '#data_key': key
+      '#data_value': value
+      '#use_select2': true
+      '#wrapper_attributes':
+        class:
+          - dagtilbud-select-wrapper
+      '#attributes':
+        class:
+          - dagtilbud-select
+        style: 'width: 350px; max-width: 100%;'
+  page_1_next_page:
+    '#type': webform_actions
+    '#title': 'Side 1 - Næste side'
+page_2:
+  '#type': wizard_page
+  '#title': 'Udfyldt oplysninger'
+  '#attributes':
+    style: 'background: #E5EFFA; padding: 25px;'
+  section_afdelinger:
+    '#type': section
+    '#title': Afdelinger
+    '#title_display': invisible
+    frokost_eller_madpakke:
+      '#type': radios
+      '#title': 'Bestyrelsens beslutning om tilbud af frokostmåltid eller madpakke'
+      '#options':
+        frokost: Frokostmåltid
+        madpakke: 'Madpakke (som forældre selv tilbereder)'
+      '#options_display': side_by_side
+      '#states':
+        visible:
+          ':input[name="twig_page2_content"]':
+            value: '1'
+    twig_forklaring_af_skema:
+      '#type': computed_twig
+      '#title': twig_forklaring_af_skema
+      '#title_display': invisible
+      '#template': |-
+        {% set antal_raw = (data.twig_antal_afdelinger ~ '')|trim %}
+
+        {% if antal_raw is not empty %}
+
+          {% set antal = antal_raw + 0 %}
+          {% set minus_1 = antal - 1 %}
+          {% set minus_1 = minus_1 > 0 ? minus_1 : 0 %}
+
+          <div style="background:#f8f9fa; padding:15px; border-radius:5px; width:60em;">
+
+            {% if antal == 1 %}
+              <p>
+                Venligst udfyld nedenstående oplysninger.
+              </p>
+
+            {% else %}
+              <p>
+                Det valgte dagtilbud har <strong>{{ antal }}</strong> afdelinger. I tekstboksen nederst på siden skal du indtaste tallet <strong>{{ minus_1 }}</strong> og derefter tykke på <strong>tilføj</strong>-knappen.
+                Du skal nu udfylde oplysninger for hver afdeling i dagtilbuddet.
+                Hvis du kommer til at tilføje for mange afdelinger, kan du fjerne dem igen ved at trykke på minusset til højre for rækken”
+
+              {% endif %}
+
+          </div>
+
+        {% endif %}
+      '#whitespace': spaceless
+      '#states':
+        visible:
+          - or
+          - ':input[name="twig_page2_content"]':
+              value: '2'
+          - ':input[name="frokost_eller_madpakke"]':
+              value: frokost
+    afdelinger_v1:
+      '#type': custom_composite
+      '#title': Afdelinger
+      '#title_display': invisible
+      '#multiple__min_items': 0
+      '#multiple__empty_items': 1
+      '#multiple__sorting': false
+      '#multiple__add': false
+      '#multiple__add_more_input_label': afdeling(er)
+      '#wrapper_attributes':
+        style: 'overflow-x: auto; display: block;'
+      '#states':
+        visible:
+          ':input[name="frokost_eller_madpakke"]':
+            value: frokost
+      '#element':
+        afdeling:
+          '#type': webform_remote_select_element
+          '#required': true
+          '#title': Afdeling
+          '#endpoint': 'https://mbu-os2forms.adm.aarhuskommune.dk/os2forms/api/kommunal_frokost/get_dagtilbud_afdelinger/[webform_submission:values:twig_dagtilbud]'
+          '#data_key': value
+          '#data_value': value
+          '#states_clear': false
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        hvorfra_skal_der_bestilles_mad:
+          '#type': select
+          '#options':
+            egenproduktion: Egenproduktion
+            samproduktion_fra_en_anden_afdeling: 'Samproduktion fra en anden afdeling'
+            ekstern_leveret_fra_leverandoer_eller_skole: 'Ekstern leveret fra leverandoer eller skole'
+          '#title': 'Hvilken type frokost tilbydes?'
+          '#sort_options': true
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        fra_hvilken_ekstern_levering:
+          '#type': textfield
+          '#title': 'Ved ekstern levering - indskriv venligst den nuværende leverandør'
+          '#description': 'Udfyld kun hvis ekstern levering blev valgt i spørgsmål om hvilken type frokost tilbydes!'
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        fra_hvilken_afdeling:
+          '#type': textfield
+          '#title': 'Ved samproduktion - indskriv venligst hvilken afdeling I får maden fra'
+          '#description': 'Udfyld kun hvis samproduktion blev valgt i spørgsmål om hvilken type frokost tilbydes!'
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        saerlige_bemaerkning:
+          '#type': textfield
+          '#title': 'Bemærkning ved særlige forhold'
+          '#description': '(fx Skovbørnehave, lukket afdeling eller andet)'
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+    afdelinger_v2:
+      '#type': custom_composite
+      '#title': Afdelinger
+      '#title_display': invisible
+      '#multiple__min_items': 0
+      '#multiple__empty_items': 1
+      '#multiple__sorting': false
+      '#multiple__add': false
+      '#multiple__add_more_input_label': afdeling(er)
+      '#wrapper_attributes':
+        style: 'overflow-x: auto; display: block;'
+      '#states':
+        visible:
+          ':input[name="twig_page2_content"]':
+            value: '2'
+      '#element':
+        afdeling:
+          '#type': webform_remote_select_element
+          '#required': true
+          '#title': Afdeling
+          '#endpoint': 'https://mbu-os2forms.adm.aarhuskommune.dk/os2forms/api/kommunal_frokost/get_dagtilbud_afdelinger/[webform_submission:values:twig_dagtilbud]'
+          '#data_key': value
+          '#data_value': value
+          '#states_clear': false
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        afdelings_specifikt_aldersopdeling:
+          '#type': radios
+          '#title': 'Bestyrelsen i dagtilbuddet har truffet beslutning om, at afstemningen i integrerede institutioner skal foregå:'
+          '#options':
+            aldersopdelt: 'aldersopdelt for hhv. vuggestue og børnehave'
+            samlet: 'samlet for hhv. vuggestue og børnehave'
+          '#description': 'Udfyldes kun, hvis afdelingen er integreret'
+        hvorfra_skal_der_bestilles_mad:
+          '#type': select
+          '#options':
+            egenproduktion: Egenproduktion
+            samproduktion_fra_en_anden_afdeling: 'Samproduktion fra en anden afdeling'
+            ekstern_leveret_fra_leverandoer_eller_skole: 'Ekstern leveret fra leverandoer eller skole'
+          '#title': 'Såfremt der stemmes <strong>Ja</strong> til frokostmåltid, hvilken type frokost tilbydes?'
+          '#sort_options': true
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        fra_hvilken_ekstern_levering:
+          '#type': textfield
+          '#title': 'Ved ekstern levering - indskriv venligst den nuværende leverandør'
+          '#description': 'Udfyld kun hvis ekstern levering blev valgt i spørgsmål om hvilken type frokost tilbydes!'
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        fra_hvilken_afdeling:
+          '#type': textfield
+          '#title': 'Ved samproduktion - indskriv venligst hvilken afdeling I får maden fra'
+          '#description': 'Udfyld kun hvis samproduktion blev valgt i spørgsmål om hvilken type frokost tilbydes!'
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+        saerlige_bemaerkning:
+          '#type': textfield
+          '#title': 'Bemærkning ved særlige forhold'
+          '#description': '(fx Skovbørnehave, lukket afdeling eller andet)'
+          '#attributes':
+            style: 'width: 100%; min-width: 200px; box-sizing: border-box;'
+  page_2_next_page:
+    '#type': webform_actions
+    '#title': 'Side 2 - Næste side'
+page_3:
+  '#type': wizard_page
+  '#title': Opsummering
+  section_opsummering:
+    '#type': section
+    '#title': '<h4>Godkend de indtastede oplysninger</h4>'
+    '#attributes':
+      style: 'background: #E5EFFA; padding: 25px;'
+    vandret_streg_opsummering:
+      '#type': horizontal_rule
+    opsummering_overordnet:
+      '#type': computed_twig
+      '#title': 'Overordnet beslutning'
+      '#title_display': invisible
+      '#template': |-
+        {% set raw = data.vaelg_dagtilbud|default('') %}
+        {% set parts = raw is not empty and '--' in raw ? raw|split('--') : [] %}
+
+        {% set dagtilbud_navn = parts[1]|default(raw)|trim %}
+
+        {% set antal_raw = (data.twig_antal_afdelinger|default('') ~ '')|trim %}
+        {% set antal = antal_raw matches '/^[0-9]+$/' ? antal_raw + 0 : 0 %}
+
+        {% set frokost_eller_madpakke = data.frokost_eller_madpakke|default('') %}
+
+        <div style="background:white; padding:15px; border-radius:5px; margin-bottom:20px;">
+
+          <h4 style="margin-top:0;">Overordnet opsummering</h4>
+
+          <p>
+            <strong>Dagtilbud:</strong>
+            {{ dagtilbud_navn ?: '-' }}
+          </p>
+
+          <p>
+            <strong>Antal afdelinger:</strong>
+            {{ antal > 0 ? antal : '-' }}
+          </p>
+
+          {% if frokost_eller_madpakke is not empty %}
+            <p>
+              <strong>Bestyrelsens beslutning:</strong>
+              {{ frokost_eller_madpakke == 'frokost' ? 'Frokostmåltid' : 'Madpakke' }}
+            </p>
+          {% endif %}
+
+        </div>
+      '#whitespace': spaceless
+      '#store': false
+    opsummering_afdelinger:
+      '#type': computed_twig
+      '#title': 'Indtastede afdelinger'
+      '#title_display': invisible
+      '#template': |-
+        {% set food_choice = data.frokost_eller_madpakke|default('') %}
+        {% set use_v2 = data.twig_page2_content == '2' %}
+        {% set rows = use_v2 ? data.afdelinger_v2|default([]) : data.afdelinger_v1|default([]) %}
+        {% set filled = rows|filter(r => r.afdeling|default('') is not empty) %}
+
+        {% set show_aldersopdeling = filled|filter(r => r.afdelings_specifikt_aldersopdeling|default('') is not empty)|length > 0 %}
+
+        <div style="background:white; padding:15px; border-radius:5px; margin-bottom:20px;">
+
+          <h4 style="margin-top:0;">Indtastede afdelinger</h4>
+
+          {% if food_choice == 'madpakke' %}
+
+            <p>
+              Der er valgt <strong>Madpakke</strong>.
+            </p>
+
+          {% elseif filled|length > 0 %}
+
+            <table style="border-collapse: collapse; width: 100%; font-size:14px;">
+              <thead>
+                <tr style="background:#f1f3f5;">
+                  <th style="padding:8px; text-align:left;">Afdeling</th>
+
+                  {% if show_aldersopdeling %}
+                    <th style="padding:8px; text-align:left;">Afstemning</th>
+                  {% endif %}
+
+                  <th style="padding:8px; text-align:left;">Frokosttype</th>
+                  <th style="padding:8px; text-align:left;">Samproduktion</th>
+                  <th style="padding:8px; text-align:left;">Ekstern leverandør</th>
+                  <th style="padding:8px; text-align:left;">Bemærkning</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% for row in filled %}
+
+                  {% set afdeling = row.afdeling|default('') %}
+                  {% set afdeling_parts = afdeling is not empty and '||' in afdeling ? afdeling|split('||') : [] %}
+                  {% set afdeling_navn = afdeling_parts[1]|default(afdeling) %}
+
+                  {% set frokosttype = row.hvorfra_skal_der_bestilles_mad|default('') %}
+                  {% set afstemning = row.afdelings_specifikt_aldersopdeling|default('') %}
+                  {% set samproduktion = row.fra_hvilken_afdeling|default('') %}
+                  {% set ekstern = row.fra_hvilken_ekstern_levering|default('') %}
+                  {% set bemaerkning = row.saerlige_bemaerkning|default('') %}
+
+                  <tr style="border-bottom:1px solid #e9ecef;">
+                    <td style="padding:8px;">{{ afdeling_navn ?: '-' }}</td>
+
+                    {% if show_aldersopdeling %}
+                      <td style="padding:8px;">
+                        {% if afstemning == 'aldersopdelt' %}
+                          Aldersopdelt
+                        {% elseif afstemning == 'samlet' %}
+                          Samlet
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                    {% endif %}
+
+                    <td style="padding:8px;">
+                      {% if frokosttype == 'egenproduktion' %}
+                        Egenproduktion
+                      {% elseif frokosttype == 'ekstern_leveret_fra_leverandoer_eller_skole' %}
+                        Ekstern levering
+                      {% elseif frokosttype == 'samproduktion_fra_en_anden_afdeling' %}
+                        Samproduktion
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+
+                    <td style="padding:8px;">{{ samproduktion ?: '-' }}</td>
+                    <td style="padding:8px;">{{ ekstern ?: '-' }}</td>
+                    <td style="padding:8px;">{{ bemaerkning ?: '-' }}</td>
+                  </tr>
+
+                {% endfor %}
+              </tbody>
+            </table>
+
+          {% else %}
+            <p>Ingen afdelinger er indtastet.</p>
+          {% endif %}
+
+        </div>
+      '#whitespace': spaceless
+      '#store': false
+    afdelinger_validation:
+      '#type': computed_twig
+      '#title': 'Validering af afdelinger'
+      '#title_display': invisible
+      '#template': |-
+        {% set food_choice = data.frokost_eller_madpakke|default('') %}
+        {% set use_v2 = data.twig_page2_content == '2' %}
+        {% set rows = use_v2 ? data.afdelinger_v2|default([]) : data.afdelinger_v1|default([]) %}
+        {% set filled = rows|filter(r => r.afdeling|default('') is not empty) %}
+        {% set filled_count = filled|length %}
+
+        {% set expected_raw = (data.twig_antal_afdelinger|default('') ~ '')|trim %}
+        {% set expected = expected_raw matches '/^[0-9]+$/' ? expected_raw + 0 : 0 %}
+
+        {% set ekstern_mangler_leverandoer = filled|filter(r =>
+          r.hvorfra_skal_der_bestilles_mad|default('') == 'ekstern_leveret_fra_leverandoer_eller_skole'
+          and (((r.fra_hvilken_ekstern_levering|default('') ~ '')|trim) == '')
+        ) %}
+
+        {% set has_ekstern_mangler_leverandoer = ekstern_mangler_leverandoer|length > 0 %}
+
+        {% set seen = [] %}
+        {% set has_duplicates = false %}
+
+        {% for r in filled %}
+          {% set val = r.afdeling|default('') %}
+
+          {% if val is not empty and '||' in val %}
+            {% set val = val|split('||')[0] %}
+          {% endif %}
+
+          {% if val in seen %}
+            {% set has_duplicates = true %}
+          {% else %}
+            {% set seen = seen|merge([val]) %}
+          {% endif %}
+        {% endfor %}
+
+        <div style="background:white; padding:15px; border-radius:5px;">
+
+          <h4 style="margin-top:0;">Kontrol</h4>
+
+          {% if food_choice == 'madpakke' %}
+
+            <p style="color:green;">
+              ✔ Der er valgt madpakke.
+            </p>
+
+          {% else %}
+
+            <p>
+              {{ filled_count }} / {{ expected }} afdelinger udfyldt
+            </p>
+
+            {% if expected > 0 and filled_count != expected %}
+              <p style="color:red;">
+                ⚠ Antal afdelinger stemmer ikke.
+              </p>
+            {% endif %}
+
+            {% if has_duplicates %}
+              <p style="color:red;">
+                ⚠ Dubletter fundet.
+              </p>
+            {% endif %}
+
+            {% if has_ekstern_mangler_leverandoer %}
+              <p style="color:red;">
+                ⚠ Ved ekstern levering skal nuværende leverandør udfyldes for:
+              </p>
+
+              <ul style="color:red;">
+                {% for r in ekstern_mangler_leverandoer %}
+                  {% set afdeling = r.afdeling|default('') %}
+
+                  {% if afdeling is not empty and '||' in afdeling %}
+                    {% set afdeling_parts = afdeling|split('||') %}
+                    {% set afdeling_navn = afdeling_parts[1]|default(afdeling) %}
+                  {% else %}
+                    {% set afdeling_navn = afdeling %}
+                  {% endif %}
+
+                  <li>{{ afdeling_navn ?: 'Ukendt afdeling' }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+
+            {% if expected > 0
+              and filled_count == expected
+              and not has_duplicates
+              and not has_ekstern_mangler_leverandoer
+            %}
+              <p style="color:green;">
+                ✔ Alt ser korrekt ud.
+              </p>
+            {% endif %}
+
+          {% endif %}
+
+        </div>
+      '#whitespace': spaceless
+      '#store': false
+  page_3_submit:
+    '#type': webform_actions
+    '#title': 'Side 3 - godkend'
+contact_information:
+  '#type': markup
+  '#markup': '<p>Støder du på problemer i forbindelse med udfyldelse af formularen, kan du kontakte Lea Falkenberg Andersen på tlf. 51575901 eller mail, lefa@aarhus.dk</p>'
+twigs:
+  '#type': section
+  '#title': TWIGS
+  '#title_display': invisible
+  '#description_display': invisible
+  '#format': container
+  '#attributes':
+    style: 'display:none'
+  twig_dagtilbud:
+    '#type': computed_twig
+    '#title': twig_dagtilbud
+    '#template': |-
+      {% set raw = data.vaelg_dagtilbud|default('') %}
+
+      {% if raw is not empty and '--' in raw %}
+        {% set parts = raw|split('--') %}
+        {{ parts[0] }}
+      {% endif %}
+    '#whitespace': spaceless
+    '#store': true
+    '#states_clear': false
+  twig_antal_afdelinger:
+    '#type': computed_twig
+    '#title': twig_antal_afdelinger
+    '#template': |-
+      {% set raw = data.vaelg_dagtilbud|default('') %}
+
+      {% if raw is not empty and '--' in raw %}
+        {% set parts = raw|split('--') %}
+        {{ parts[2] }}
+      {% endif %}
+    '#whitespace': spaceless
+    '#store': true
+    '#states_clear': false
+  twig_page2_content:
+    '#type': computed_twig
+    '#title': twig_page2_content
+    '#template': |-
+      {% set raw = data.vaelg_dagtilbud|default('') %}
+
+      {% if raw is not empty and '--' in raw %}
+        {% set parts = raw|split('--') %}
+
+        {% set antal_afdelinger = parts[2]|default('0')|trim %}
+
+        {# convert to number by adding 0 #}
+        {% set antal = antal_afdelinger + 0 %}
+
+        {% if antal > 1 %}
+          2
+        {% else %}
+          1
+        {% endif %}
+      {% endif %}
+    '#whitespace': spaceless
+    '#store': true
+    '#states_clear': false
