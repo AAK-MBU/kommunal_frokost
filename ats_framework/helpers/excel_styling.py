@@ -1,5 +1,8 @@
 """Styling of the report sheet, mirroring "Aldersopdelt og type 2024" in helpers"""
 
+import math
+import textwrap
+
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -9,7 +12,9 @@ FONT_NAME = "Arial"
 MASTERDATA_FILL = "C4BD97"
 BESVARELSE_FILL = "E6B9B8"
 META_FILL = "B7DEE8"
-DAGTILBUD_DATA_FILL = "8EB4E3"
+
+# Data rows alternate between these per dagtilbud, so each dagtilbud stands out
+BAND_FILLS = ("FFFFFF", "F2F2F2")
 
 # Column name -> (header fill, column width)
 COLUMN_STYLES = {
@@ -32,7 +37,14 @@ COLUMN_STYLES = {
     "Besvarelses-ID": (META_FILL, 13),
 }
 
-HEADER_ROW_HEIGHT = 38.25
+# Font sizes, and estimates used for row heights:
+# characters per unit of column width, and line height in points
+HEADER_FONT_SIZE = 9
+DATA_FONT_SIZE = 8
+CHARS_PER_WIDTH_UNIT = {HEADER_FONT_SIZE: 1.0, DATA_FONT_SIZE: 1.2}
+LINE_HEIGHT = {HEADER_FONT_SIZE: 12.0, DATA_FONT_SIZE: 11.25}
+ROW_PADDING = 4  # extra points added to the calculated height
+MIN_ROW_HEIGHT = 15
 
 THIN = Side(style="thin")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
@@ -40,6 +52,28 @@ BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 def _fill(rgb: str) -> PatternFill:
     return PatternFill(fill_type="solid", start_color=rgb, end_color=rgb)
+
+
+def _line_count(value, width: float, font_size: int) -> int:
+    """Estimate the number of lines a wrapped cell value takes up."""
+    if value is None or value == "":
+        return 1
+
+    chars_per_line = max(1, int(width * CHARS_PER_WIDTH_UNIT[font_size]))
+
+    return sum(
+        max(1, len(textwrap.wrap(line, chars_per_line, break_long_words=True)))
+        for line in str(value).split("\n")
+    )
+
+
+def _row_height(cells, widths: dict, font_size: int) -> float:
+    """Height in points fitting the tallest cell in the row, plus padding."""
+    lines = max(
+        (_line_count(c.value, widths[c.column_letter], font_size) for c in cells),
+        default=1,
+    )
+    return max(MIN_ROW_HEIGHT, math.ceil(lines * LINE_HEIGHT[font_size] + ROW_PADDING))
 
 
 def style_report_sheet(ws: Worksheet) -> None:
@@ -51,6 +85,16 @@ def style_report_sheet(ws: Worksheet) -> None:
     """
     headers = [cell.value for cell in ws[1]]
 
+    # Rows are sorted by dagtilbud - switch band colour whenever it changes
+    dagtilbud_col = headers.index("Dagtilbud") + 1
+    row_fills = {}
+    band, previous = 1, object()
+    for row_idx in range(2, ws.max_row + 1):
+        dagtilbud = ws.cell(row=row_idx, column=dagtilbud_col).value
+        if dagtilbud != previous:
+            band, previous = 1 - band, dagtilbud
+        row_fills[row_idx] = _fill(BAND_FILLS[band])
+
     for col_idx, header in enumerate(headers, start=1):
         header_fill, width = COLUMN_STYLES.get(header, (MASTERDATA_FILL, 15))
         is_dagtilbud = header == "Dagtilbud"
@@ -61,24 +105,27 @@ def style_report_sheet(ws: Worksheet) -> None:
 
             if cell.row == 1:
                 cell.fill = _fill(header_fill)
-                cell.font = Font(name=FONT_NAME, size=9, bold=True)
+                cell.font = Font(name=FONT_NAME, size=HEADER_FONT_SIZE, bold=True)
                 cell.alignment = Alignment(
                     horizontal="center", vertical="center", wrap_text=True
                 )
             else:
-                cell.font = Font(name=FONT_NAME, size=8, bold=is_dagtilbud)
+                cell.font = Font(name=FONT_NAME, size=DATA_FONT_SIZE, bold=is_dagtilbud)
                 cell.alignment = Alignment(
                     horizontal="left", vertical="top", wrap_text=True
                 )
-                if is_dagtilbud:
-                    cell.fill = _fill(DAGTILBUD_DATA_FILL)
+                cell.fill = row_fills[cell.row]
 
         ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = width
 
-    # Let Excel size data rows to the wrapped content
-    for row_idx in list(ws.row_dimensions):
-        ws.row_dimensions[row_idx].height = None
-    ws.row_dimensions[1].height = HEADER_ROW_HEIGHT
+    # Excel does not auto fit rows in generated files, so estimate the heights
+    widths = {
+        letter: ws.column_dimensions[letter].width
+        for letter in (c.column_letter for c in ws[1])
+    }
+    for row in ws.iter_rows():
+        font_size = HEADER_FONT_SIZE if row[0].row == 1 else DATA_FONT_SIZE
+        ws.row_dimensions[row[0].row].height = _row_height(row, widths, font_size)
 
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
