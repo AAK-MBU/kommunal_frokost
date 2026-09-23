@@ -316,7 +316,7 @@ async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
                     logger.info("Added item to queue with reference: %s", reference)
                     return True
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - retry on any failure
                     if attempt >= config.MAX_RETRIES:
                         logger.error(
                             "Failed to add item %s after %d attempts: %s",

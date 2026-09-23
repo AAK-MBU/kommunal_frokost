@@ -14,7 +14,7 @@ BESVARELSE_FILL = "E6B9B8"
 META_FILL = "B7DEE8"
 
 # Data rows alternate between these per dagtilbud, so each dagtilbud stands out
-BAND_FILLS = ("FFFFFF", "F2F2F2")
+BAND_FILLS = ("FFFFFF", "D0D0D0")
 
 # Column name -> (header fill, column width)
 COLUMN_STYLES = {
