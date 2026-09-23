@@ -1,6 +1,7 @@
 """Module to handle item processing"""
 
 import logging
+import time
 from datetime import datetime
 from io import BytesIO
 from zoneinfo import ZoneInfo
@@ -227,6 +228,8 @@ def process_item(item_data: dict, item_reference: str):
     the process can safely be rerun.
     """
     sharepoint: Sharepoint = get_app()
+
+    time.sleep(1)
 
     rows = build_rows(item_data)
     sid = int(item_data["sid"])
