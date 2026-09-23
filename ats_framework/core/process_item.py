@@ -8,9 +8,11 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 from mbu_msoffice_integration.sharepoint_class import Sharepoint
 from mbu_rpa_core.exceptions import ProcessError
+from openpyxl import load_workbook
 
 from ats_framework.core.application_handler import get_app
 from ats_framework.helpers import config
+from ats_framework.helpers.excel_styling import style_report_sheet
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +177,47 @@ def create_excel_file(sharepoint: Sharepoint, rows: list[dict]) -> None:
     )
 
 
+def style_excel_file(sharepoint: Sharepoint, sid: int) -> None:
+    """
+    Download the sorted file, verify the submission landed, apply the report
+    styling and upload it again.
+
+    Sharepoint only prints upload errors, so the check on the downloaded file
+    is what confirms that the append and sort uploads succeeded.
+    """
+    content = sharepoint.fetch_file_using_open_binary(
+        config.EXCEL_FILE_NAME, config.SHAREPOINT_FOLDER_NAME
+    )
+    if content is None:
+        raise ProcessError(f"Could not download '{config.EXCEL_FILE_NAME}'")
+
+    wb = load_workbook(BytesIO(content))
+    ws = wb[config.EXCEL_SHEET_NAME]
+
+    sid_col = [c.value for c in ws[1]].index(SID_COLUMN) + 1
+    sids = {
+        int(v)
+        for (v,) in ws.iter_rows(
+            min_row=2, min_col=sid_col, max_col=sid_col, values_only=True
+        )
+        if v is not None
+    }
+    if sid not in sids:
+        raise ProcessError(
+            f"Submission {sid} was not found in '{config.EXCEL_FILE_NAME}' after upload"
+        )
+
+    style_report_sheet(ws)
+
+    stream = BytesIO()
+    wb.save(stream)
+    sharepoint.upload_file_from_bytes(
+        binary_content=stream.getvalue(),
+        file_name=config.EXCEL_FILE_NAME,
+        folder_name=config.SHAREPOINT_FOLDER_NAME,
+    )
+
+
 def process_item(item_data: dict, item_reference: str):
     """
     Write the rows for one submission to the Excel file in SharePoint.
@@ -225,12 +268,9 @@ def process_item(item_data: dict, item_reference: str):
         bold_rows=[1],
         align_horizontal="left",
         align_vertical="top",
-        column_widths=50,
+        column_widths="auto",
         freeze_panes="A2",
     )
 
-    # Sharepoint only prints upload errors, so verify the rows actually landed
-    if sid not in (fetch_existing_sids(sharepoint) or set()):
-        raise ProcessError(
-            f"Submission {sid} was not found in '{config.EXCEL_FILE_NAME}' after upload"
-        )
+    # format_and_sort_excel_file rewrites all rows, so styling is applied afterwards
+    style_excel_file(sharepoint, sid)
