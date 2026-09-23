@@ -112,7 +112,7 @@ def style_report_sheet(ws: Worksheet) -> None:
             else:
                 cell.font = Font(name=FONT_NAME, size=DATA_FONT_SIZE, bold=is_dagtilbud)
                 cell.alignment = Alignment(
-                    horizontal="left", vertical="top", wrap_text=True
+                    horizontal="center", vertical="center", wrap_text=True
                 )
                 cell.fill = row_fills[cell.row]
 

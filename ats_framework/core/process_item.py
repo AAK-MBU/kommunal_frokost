@@ -269,8 +269,8 @@ def process_item(item_data: dict, item_reference: str):
             {"key": "D", "ascending": True},
         ],
         bold_rows=[1],
-        align_horizontal="left",
-        align_vertical="top",
+        align_horizontal="center",
+        align_vertical="center",
         column_widths="auto",
         freeze_panes="A2",
     )
