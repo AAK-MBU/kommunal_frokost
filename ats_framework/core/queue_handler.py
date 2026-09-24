@@ -110,7 +110,12 @@ MASTERDATA_SQL = """
         [BuMasterdata].[dbo].[VIEW_MD_STAMDATA_AKTUEL]
     WHERE
         LOSID = ?
-        OR ORG_REFERENCE_TIL = ?
+        OR (
+            -- Same afdeling filter as get_dagtilbud_afdelinger in the formular
+            ORG_REFERENCE_TIL = ?
+            AND HOMR = 3
+            AND AFDTYPE != 3
+        )
 """
 
 
@@ -218,46 +223,91 @@ def enrich_with_masterdata(
     ]
 
 
+SUBMISSIONS_SQL = """
+    SELECT
+        [form_id],
+        [form_sid],
+        [form_type],
+        [form_source],
+        CONVERT(nvarchar(33), [form_submitted_date], 127) AS [form_submitted_date],
+        [destination_system],
+        [status],
+        [response],
+        CONVERT(nvarchar(33), [documented_date], 127) AS [documented_date],
+        [form_data],
+        CONVERT(nvarchar(33), [last_time_modified], 127) AS [last_time_modified]
+    FROM
+        [RPA].[journalizing].[view_Journalizing] AS vj
+    WHERE
+        form_type = 'kommunal_frokost'
+    ORDER BY
+        vj.[form_submitted_date] DESC
+"""
+
+# Same selection of dagtilbud as get_dagtilbud in the formular
+ALL_DAGTILBUD_SQL = """
+    SELECT
+        d.LOSID,
+        d.DAGTBNR_TXT,
+        d.LEDERNAVN,
+        d.E_MAIL,
+        COUNT(DISTINCT a.LOSID) AS antal_afdelinger,
+        CASE
+            WHEN d.EJERTYPE = 2 THEN 1
+            ELSE 0
+        END AS sdt
+    FROM
+        [BuMasterdata].[dbo].[VIEW_MD_STAMDATA_AKTUEL] d
+    LEFT JOIN
+        [BuMasterdata].[dbo].[VIEW_MD_STAMDATA_AKTUEL] a
+        ON a.ORG_REFERENCE_TIL = d.LOSID
+        AND a.AFDTYPE != 3
+        AND a.HOMR = 3
+    WHERE
+        d.HOMR = 3
+        AND d.AFDTYPE = 1
+    GROUP BY
+        d.LOSID,
+        d.DAGTBNR_TXT,
+        d.LEDERNAVN,
+        d.E_MAIL,
+        d.EJERTYPE
+    ORDER BY
+        d.DAGTBNR_TXT
+"""
+
+
+def fetch_submissions(rpa_conn: RPAConnection) -> list[dict]:
+    """Fetch all kommunal_frokost submissions, with form_data parsed from JSON."""
+    rows = rpa_conn.execute_query(SUBMISSIONS_SQL, return_dict=True) or []
+
+    for row in rows:
+        if isinstance(row.get("form_data"), str):
+            row["form_data"] = json.loads(row["form_data"])
+
+    return rows
+
+
+def fetch_all_dagtilbud(rpa_conn: RPAConnection) -> list[dict]:
+    """Fetch every dagtilbud that can be selected in the formular."""
+    return rpa_conn.execute_query(ALL_DAGTILBUD_SQL, return_dict=True) or []
+
+
 def retrieve_items_for_queue() -> list[dict]:
     """Function to populate queue"""
     data = []
     references = []
 
-    sql = """
-        SELECT
-            [form_id],
-            [form_sid],
-            [form_type],
-            [form_source],
-            CONVERT(nvarchar(33), [form_submitted_date], 127) AS [form_submitted_date],
-            [destination_system],
-            [status],
-            [response],
-            CONVERT(nvarchar(33), [documented_date], 127) AS [documented_date],
-            [form_data],
-            CONVERT(nvarchar(33), [last_time_modified], 127) AS [last_time_modified]
-        FROM
-            [RPA].[journalizing].[view_Journalizing] AS vj
-        WHERE
-            form_type = 'kommunal_frokost'
-        ORDER BY
-            vj.[form_submitted_date] DESC
-    """
-
     rpa_conn = RPAConnection(db_env="PROD", commit=False)
     with rpa_conn:
-        rows = rpa_conn.execute_query(sql, return_dict=True) or []
+        rows = fetch_submissions(rpa_conn)
 
         logger.info("Fetched %d kommunal_frokost submissions", len(rows))
 
         masterdata_cache: dict[str, tuple[dict, list]] = {}
 
         for row in rows:
-            form_data = row.get("form_data")
-            if isinstance(form_data, str):
-                form_data = json.loads(form_data)
-
-            submission = parse_submission(form_data or {})
+            submission = parse_submission(row.get("form_data") or {})
             submission["form_id"] = _clean(row.get("form_id"))
             submission["form_submitted_date"] = _to_json_safe(
                 row.get("form_submitted_date")

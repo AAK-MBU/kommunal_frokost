@@ -20,3 +20,4 @@ SHAREPOINT_FOLDER_NAME = "Misc"
 
 EXCEL_FILE_NAME = "test.xlsx"
 EXCEL_SHEET_NAME = "Besvarelser"
+MANGLER_SHEET_NAME = "Mangler"

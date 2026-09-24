@@ -35,6 +35,10 @@ COLUMN_STYLES = {
     "Bemærkning": (BESVARELSE_FILL, 34),
     "Indsendt": (META_FILL, 16),
     "Besvarelses-ID": (META_FILL, 13),
+    # Mangler sheet
+    "LOSID": (MASTERDATA_FILL, 10),
+    "Antal afdelinger": (MASTERDATA_FILL, 11),
+    "Selvejende": (MASTERDATA_FILL, 11),
 }
 
 # Font sizes, and estimates used for row heights:
