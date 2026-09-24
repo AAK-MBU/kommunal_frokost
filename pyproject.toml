@@ -1,6 +1,6 @@
 [project]
 name = "kommunal-frokost"
-version = "0.0.0"
+version = "0.0.1"
 description = "description-here"
 readme = "README.md"
 requires-python = ">=3.13"
