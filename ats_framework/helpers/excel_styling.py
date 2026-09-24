@@ -36,6 +36,7 @@ COLUMN_STYLES = {
     "Indsendt": (META_FILL, 16),
     "Besvarelses-ID": (META_FILL, 13),
     # Mangler sheet
+    "Adresse": (MASTERDATA_FILL, 26),
     "LOSID": (MASTERDATA_FILL, 10),
     "Antal afdelinger": (MASTERDATA_FILL, 11),
     "Selvejende": (MASTERDATA_FILL, 11),

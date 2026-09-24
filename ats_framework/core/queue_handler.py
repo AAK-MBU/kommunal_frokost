@@ -248,7 +248,8 @@ SUBMISSIONS_SQL = """
 ALL_DAGTILBUD_SQL = """
     SELECT
         d.LOSID,
-        d.DAGTBNR_TXT,
+        d.ENHNAVN,
+        d.LISADR,
         d.LEDERNAVN,
         d.E_MAIL,
         COUNT(DISTINCT a.LOSID) AS antal_afdelinger,
@@ -268,12 +269,13 @@ ALL_DAGTILBUD_SQL = """
         AND d.AFDTYPE = 1
     GROUP BY
         d.LOSID,
-        d.DAGTBNR_TXT,
+        d.ENHNAVN,
+        d.LISADR,
         d.LEDERNAVN,
         d.E_MAIL,
         d.EJERTYPE
     ORDER BY
-        d.DAGTBNR_TXT
+        d.ENHNAVN
 """
 
 

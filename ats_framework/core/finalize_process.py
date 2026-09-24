@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 MANGLER_COLUMNS = [
     "Dagtilbud",
+    "Adresse",
     "LOSID",
     "Dagtilbudsleder",
     "Leder e-mail",
@@ -41,7 +42,8 @@ def build_mangler_rows(all_dagtilbud: list[dict], submissions: list[dict]) -> li
 
     return [
         [
-            _clean(d.get("DAGTBNR_TXT")),
+            _clean(d.get("ENHNAVN")),
+            _clean(d.get("LISADR")),
             _clean(d.get("LOSID")),
             _clean(d.get("LEDERNAVN")),
             _clean(d.get("E_MAIL")),
